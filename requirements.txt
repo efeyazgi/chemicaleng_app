@@ -1,0 +1,9 @@
+streamlit
+pandas
+altair
+thermo
+pint
+fluids
+pyfluids
+scipy
+numpy
