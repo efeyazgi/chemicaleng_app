@@ -1,60 +1,82 @@
+import math
 from scipy.integrate import quad
+from pint import UnitRegistry
 
-def calculate_stoichiometry(reactants, products, initial_moles):
+# Birim sistemi
+ureg = UnitRegistry()
+Q_ = ureg.Quantity
+
+
+def calculate_rate_constant(k0, Ea, T):
     """
-    Verilen reaksiyon ve başlangıç mollerine göre sınırlayıcı bileşeni,
-    kalan molleri ve oluşan ürün mollerini hesaplar.
+    Arrhenius kinetiği: k = k0 * exp(-Ea/(R*T))
+    k0: [1/s], Ea: [J/mol], T: [K]
+    Dönen: k [1/s]
     """
-    if not all(reactant in initial_moles for reactant in reactants.keys()):
-        raise ValueError("Tüm reaktifler için başlangıç molü girilmelidir.")
+    k0_q = Q_(k0, '1/second')
+    Ea_q = Q_(Ea, 'joule/mole')
+    T_q = Q_(T, 'kelvin')
+    R = Q_(8.314, 'joule/(mole*kelvin)')
+    k = k0_q * math.exp(-Ea_q/(R * T_q))
+    return k.to('1/second').magnitude
 
-    # Sınırlayıcı bileşeni bulma
-    extents = {name: initial_moles[name] / coeff for name, coeff in reactants.items() if coeff > 0}
-    if not extents:
-        raise ValueError("Reaktiflerin katsayıları pozitif olmalıdır.")
-    limiting_reactant = min(extents, key=extents.get)
-    reaction_extent = extents[limiting_reactant]
 
-    # Kalan reaktif mollerini hesaplama
-    final_moles = {}
-    for name, coeff in reactants.items():
-        final_moles[name] = initial_moles[name] - reaction_extent * coeff
-
-    # Oluşan ürün mollerini hesaplama
-    for name, coeff in products.items():
-        final_moles[name] = reaction_extent * coeff
-        
-    return limiting_reactant, final_moles
-
-def calculate_reactor_volume(F_A0, C_A0, k, X, n, reactor_type):
+def calculate_reactor_volume(F_A0, C_A0, k, X, n, reactor_type, C_B0=None, m=0):
     """
-    Basit bir -rA = k * C_A^n kinetiği için CSTR veya PFR hacmini hesaplar.
-    F_A0: A'nın molar akış hızı (mol/s)
-    C_A0: A'nın başlangıç konsantrasyonu (mol/m³)
-    k: Hız sabiti
-    X: Dönüşüm
-    n: Reaksiyon mertebesi
+    CSTR veya PFR hacmi hesaplama.
+    F_A0: molar akış hızı [mol/s]
+    C_A0: başlangıç konsantrasyon [mol/m³]
+    k: hız sabiti [1/s]
+    X: dönüşüm
+    n: CA mertebesi
+    C_B0: (isteğe bağlı) B bileşeninin başlangıç konsantrasyonu [mol/m³]
+    m: CB mertebesi
     reactor_type: 'CSTR' veya 'PFR'
+    Dönen: pint.Quantity (m³)
     """
-    if F_A0 <= 0 or C_A0 <= 0 or k <= 0 or not (0 < X < 1):
-        raise ValueError("Akış hızı, konsantrasyon, k pozitif olmalı ve dönüşüm 0 ile 1 arasında olmalıdır.")
+    # Hız ifadesi
+    def rate(x):
+        ca = C_A0 * (1 - x)
+        if C_B0 is None:
+            return k * ca**n
+        else:
+            cb = C_B0 * (1 - x)
+            return k * ca**n * cb**m
 
-    # -rA = k * C_A0^n * (1-X)^n
-    rate_expression = lambda x: k * (C_A0 * (1 - x))**n
-    
     if reactor_type == 'CSTR':
-        # V = F_A0 * X / (-rA_exit)
-        rate_at_exit = rate_expression(X)
-        volume = (F_A0 * X) / rate_at_exit
-        return volume
+        r_exit = rate(X)
+        V = (F_A0 * X) / r_exit
+        return Q_(V, 'meter**3')
 
     elif reactor_type == 'PFR':
-        # V = F_A0 * integral(dX / -rA) from 0 to X
-        integrand = lambda x: 1 / rate_expression(x)
-        # integral fonksiyonu, scipy.integrate.quad ile hesaplanır
+        integrand = lambda x: 1.0 / rate(x)
         integral_val, _ = quad(integrand, 0, X)
-        volume = F_A0 * integral_val
-        return volume
-        
+        V = F_A0 * integral_val
+        return Q_(V, 'meter**3')
+
     else:
-        raise ValueError("Geçersiz reaktör tipi. 'CSTR' veya 'PFR' seçin.")
+        raise ValueError("Reaktör tipi 'CSTR' veya 'PFR' olmalı.")
+
+
+def calculate_batch_time(C_A0, k, X, n, C_B0=None, m=0):
+    """
+    Kesikli reaktörde dönüşüm için gereken süre [s].
+    C_A0: başlangıç konsantrasyon [mol/m³]
+    k: hız sabiti [1/s]
+    X: dönüşüm
+    n: CA mertebesi
+    C_B0: (isteğe bağlı) B bileşen başlangıç konsantrasyonu [mol/m³]
+    m: CB mertebesi
+    Dönen: pint.Quantity (s)
+    """
+    def rate(x):
+        ca = C_A0 * (1 - x)
+        if C_B0 is None:
+            return k * ca**n
+        else:
+            cb = C_B0 * (1 - x)
+            return k * ca**n * cb**m
+
+    integrand = lambda x: 1.0 / (rate(x) / C_A0)
+    integral_val, _ = quad(integrand, 0, X)
+    return Q_(integral_val, 'second')
