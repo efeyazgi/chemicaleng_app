@@ -1,27 +1,17 @@
 import streamlit as st
 import base64
+    
+st.set_page_config(page_title="ChemCalc - Ana Sayfa", page_icon="🧪", layout="wide")
 
-st.set_page_config(page_title="Ana Sayfa", page_icon="🏠")
-st.set_page_config(page_title="ChemE Pro - Ana Sayfa", page_icon="🧪", layout="wide")
+# Logo ve Başlık
+col1, col2 = st.columns([1, 4], gap="medium", vertical_alignment="center")
 
-# Logo'yu base64 formatına çevir
-def load_logo_base64(path):
-    with open(path, "rb") as image_file:
-        encoded = base64.b64encode(image_file.read()).decode()
-    return f"data:image/png;base64,{encoded}"
+with col1:
+    st.image("assets/logo.png", width=150)
 
-logo_data = load_logo_base64("assets/logo.png")
-
-# Logo + Başlık HTML
-st.markdown(f"""
-    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-        <img src="{logo_data}" alt="ChemE Logo" style="height: 150px;">
-        <div>
-            <h1 style="margin-bottom: 0;"> ChemE Pro Hesaplama Platformuna Hoş Geldiniz!</h1>
-            <h4 style="margin-top: 0.2rem; color: gray;"> Kimya Mühendisliği İçin Hepsi Bir Arada Araç Seti</h4>
-        </div>
-    </div>
-""", unsafe_allow_html=True)
+with col2:
+    st.markdown("<h1 style='margin-bottom: 0; margin-top:0;'>ChemCalc Hesaplama Platformuna Hoş Geldiniz!</h1>", unsafe_allow_html=True)
+    st.markdown("<h4 style='margin-top: 0.2rem; color: gray;'>Kimya Mühendisliği İçin Hepsi Bir Arada Araç Seti</h4>", unsafe_allow_html=True)
 
 st.markdown("---")
 st.subheader("🔍 Modül Seçimi")
