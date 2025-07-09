@@ -1,6 +1,5 @@
 import streamlit as st
-import base64
-    
+
 st.set_page_config(page_title="ChemCalc - Ana Sayfa", page_icon="🧪", layout="wide")
 
 # Logo ve Başlık
