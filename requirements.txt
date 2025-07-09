@@ -1,4 +1,10 @@
-scipy
+streamlit
 pandas
+altair
+thermo
+pint
+fluids
+pyfluids
+scipy
 numpy
 plotly>=5.0.0
