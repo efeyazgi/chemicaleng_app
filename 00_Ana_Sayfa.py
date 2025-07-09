@@ -2,7 +2,7 @@ import streamlit as st
 import base64
 
 st.set_page_config(page_title="Ana Sayfa", page_icon="🏠")
-st.set_page_config(page_title="ChemE Pro - Ana Sayfa", page_icon="🧪", layout="wide")
+st.set_page_config(page_title="ChemCalc - Ana Sayfa", page_icon="🧪", layout="wide")
 
 # Logo'yu base64 formatına çevir
 def load_logo_base64(path):
@@ -15,9 +15,9 @@ logo_data = load_logo_base64("assets/logo.png")
 # Logo + Başlık HTML
 st.markdown(f"""
     <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-        <img src="{logo_data}" alt="ChemE Logo" style="height: 150px;">
+        <img src="{logo_data}" alt="ChemCalc style="height: 150px;">
         <div>
-            <h1 style="margin-bottom: 0;"> ChemE Pro Hesaplama Platformuna Hoş Geldiniz!</h1>
+            <h1 style="margin-bottom: 0;"> ChemCalc Hesaplama Platformuna Hoş Geldiniz!</h1>
             <h4 style="margin-top: 0.2rem; color: gray;"> Kimya Mühendisliği İçin Hepsi Bir Arada Araç Seti</h4>
         </div>
     </div>
