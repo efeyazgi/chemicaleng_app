@@ -8,3 +8,6 @@ pyfluids
 scipy
 numpy
 plotly>=5.0.0
+psychrolib==2.1.1
+chempy==0.11.0
+matplotlib==3.7.2
