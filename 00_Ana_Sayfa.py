@@ -1,7 +1,7 @@
 import streamlit as st
 import time
 import datetime
-import pyrebase
+import pyrebase4
 from extra_streamlit_components import CookieManager
 import os
 
