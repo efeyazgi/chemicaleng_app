@@ -4,7 +4,6 @@ altair
 thermo
 pint
 fluids
-pyfluids
 scipy
 numpy
 plotly>=5.0.0
@@ -13,4 +12,3 @@ chempy==0.9.0
 matplotlib==3.7.2
 pyrebase4
 extra-streamlit-components
-oy
