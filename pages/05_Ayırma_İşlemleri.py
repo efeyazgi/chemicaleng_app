@@ -6,13 +6,28 @@ from src.calculators.separation_calculator import (
     calculate_theoretical_trays,
 )
 
+# --- GİRİŞ KONTROLÜ (GÜNCELLENMİŞ BLOK) ---
+# Bu blok, sayfaya erişim için kullanıcının oturum açıp açmadığını ve misafir olup olmadığını kontrol eder.
+# Bu yöntem, silinen auth.py dosyası yerine doğrudan st.session_state'i kullanır.
+if not st.session_state.get("logged_in", False):
+    st.error("Bu sayfayı görüntülemek için lütfen ana sayfadan giriş yapın.")
+    # Kullanıcıyı ana sayfaya yönlendirmek için bir link ekleniyor.
+    st.page_link("00_Ana_Sayfa.py", label="Ana Sayfaya Dön", icon="🏠")
+    st.stop() # Sayfanın geri kalanının yüklenmesini engeller.
+
+# Misafir kullanıcıların bu modüle erişimini engelleme
+if st.session_state.get("is_guest", False):
+    st.warning("Bu modül yalnızca kayıtlı kullanıcılar içindir.")
+    st.info("Lütfen ana sayfaya dönüp kayıtlı bir kullanıcı ile giriş yapın.")
+    st.page_link("00_Ana_Sayfa.py", label="Ana Sayfaya Dön", icon="🏠")
+    st.stop()
+
+# --- SAYFA YAPILANDIRMASI VE BAŞLIK ---
 st.set_page_config(page_title="Ayırma İşlemleri", page_icon="⚗️")
-st.title("⚗️ Ayırma İşlemleri (McCabe–Thiele Metodu)")
-st.markdown("Bu modül, ikili karışımlar için McCabe–Thiele metodunu kullanarak distilasyon kolonlarını analiz eder.")
+st.title("⚗️ Ayırma İşlemleri (Distilasyon)")
 
-st.divider()
 
-# --- GİRİŞ ---
+# --- GİRİŞ BİLGİLERİ ---
 with st.expander("🧪 Sistem ve Akış Bilgileri", expanded=True):
     common_chems = [
         "water", "ethanol", "methanol", "benzene", "toluene",
@@ -67,7 +82,7 @@ if submit:
                     chem1, chem2, P, zF, xD, xB, q, R
                 )
 
-                # 🔐 Tüm değerleri sakla
+                # Hesaplama sonuçlarını oturum durumunda sakla
                 st.session_state["mccabe_fig_data"] = {
                     "vle_df": vle_df,
                     "q_df": q_df,
@@ -87,6 +102,7 @@ if submit:
             st.error(f"Analiz sırasında hata: {e}")
 
 # --- SONUÇLAR VE GRAFİK ---
+# Saklanan veriler varsa göster
 data = st.session_state.get("mccabe_fig_data")
 if data:
     st.divider()

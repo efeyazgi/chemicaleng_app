@@ -115,3 +115,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Hassas bilgileri ve ortam dosyalarını hariç tut
+.env
+.streamlit/secrets.toml
+
+# Python sanal ortamı
+venv/
+*.pyc
+__pycache__/

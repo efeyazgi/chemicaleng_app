@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import math
+# src.calculators... importlarınızın doğru çalıştığını varsayıyoruz.
+# Eğer bu importta hata alırsanız, dosya yolunu kontrol etmeniz gerekebilir.
 from src.calculators.heat_transfer_calculator import (
     calculate_planar_wall_heat_transfer,
     compute_planar_temperature_profile,
@@ -12,6 +14,24 @@ from src.calculators.heat_transfer_calculator import (
     ureg
 )
 
+# --- GİRİŞ KONTROLÜ (GÜNCELLENMİŞ BLOK) ---
+# Bu blok, sayfaya erişim için kullanıcının oturum açıp açmadığını ve misafir olup olmadığını kontrol eder.
+# Bu yöntem, silinen auth.py dosyası yerine doğrudan st.session_state'i kullanır.
+if not st.session_state.get("logged_in", False):
+    st.error("Bu sayfayı görüntülemek için lütfen ana sayfadan giriş yapın.")
+    # Kullanıcıyı ana sayfaya yönlendirmek için bir link ekleniyor.
+    # Ana sayfa dosyanızın adının "00_Ana_Sayfa.py" olduğunu varsayıyoruz.
+    st.page_link("00_Ana_Sayfa.py", label="Ana Sayfaya Dön", icon="🏠")
+    st.stop() # Sayfanın geri kalanının yüklenmesini engeller.
+
+# Misafir kullanıcıların bu modüle erişimini engelleme
+if st.session_state.get("is_guest", False):
+    st.warning("Bu modül yalnızca kayıtlı kullanıcılar içindir.")
+    st.info("Lütfen ana sayfaya dönüp kayıtlı bir kullanıcı ile giriş yapın.")
+    st.page_link("00_Ana_Sayfa.py", label="Ana Sayfaya Dön", icon="🏠")
+    st.stop()
+
+# --- SAYFA YAPILANDIRMASI VE BAŞLIK ---
 st.set_page_config(page_title="Isı Transferi Hesaplayıcısı", page_icon="🔥")
 st.title("🔥 Isı Transferi Hesaplayıcısı")
 st.markdown("Bu modül, çok katmanlı duvarlarda iletim ve konveksiyon etkilerini göz önünde bulundurarak ısı transferi hesaplamaları yapmanızı sağlar.")
@@ -136,7 +156,7 @@ if geom == "Düzlem Duvar":
             # 📥 CSV İndir
             df_profile = pd.DataFrame({'Konum (m)': pos, 'Sıcaklık (K)': temps})
             st.download_button('📥 Sıcaklık Profili (CSV)', data=df_profile.to_csv(index=False),
-                               file_name='sicaklik_profili.csv', mime='text/csv')
+                                file_name='sicaklik_profili.csv', mime='text/csv')
 
 else:
     st.info("Silindirik ve küresel kabuk modülleri şu an için geliştirme aşamasındadır.")
