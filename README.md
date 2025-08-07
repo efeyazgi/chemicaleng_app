@@ -50,7 +50,7 @@ pip install -r requirements.txt
 ### Uygulamayı Başlatma
 
 ```bash
-streamlit run Home.py
+streamlit run 00_Ana_Sayfa.py
 ```
 
 Tarayıcıda otomatik olarak `http://localhost:8501` açılır.
@@ -62,7 +62,7 @@ Tarayıcıda otomatik olarak `http://localhost:8501` açılır.
 ```
 ├── pages/                  # Streamlit sayfa dosyaları
 ├── src/calculators/        # Hesaplama fonksiyonları
-├── Home.py                 # Ana sayfa
+├── 00_Ana_Sayfa.py         # Ana sayfa
 ├── requirements.txt        # Gereken Python kütüphaneleri
 └── README.md               # Proje açıklaması
 ```
@@ -91,7 +91,7 @@ Lütfen `develop` branch'ine katkıda bulunun ve kodlarınızı `black` ve `flak
 
 ## 📄 Lisans
 
-Bu proje MIT lisansı ile lisanslanmıştır. Detaylar için `LICENSE` dosyasına bakınız.
+Bu proje MIT lisansı ile lisanslanmıştır. Detaylar için `LICENCE.md` dosyasına bakınız.
 
 Platformda kullanılan bazı hesaplama bileşenleri Caleb Bell tarafından geliştirilen `thermo`, `ht`, `fluids` gibi kütüphanelere dayanmaktadır ve aynı şekilde MIT lisansı altındadır.
 

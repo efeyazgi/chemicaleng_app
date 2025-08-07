@@ -7,10 +7,8 @@ fluids
 scipy
 numpy
 plotly>=5.0.0
-psychrolib==2.1.1
-chempy==0.9.0
-matplotlib==3.7.2
+matplotlib>=3.7
 pyrebase4
 extra-streamlit-components
 pyfluids
-requests>=2.20.0
+requests>=2.32.2

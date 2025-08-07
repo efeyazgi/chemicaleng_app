@@ -1,4 +1,5 @@
 import streamlit as st
+st.set_page_config(page_title="Isı Transferi Hesaplayıcısı", page_icon="🔥")
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -32,7 +33,6 @@ if st.session_state.get("is_guest", False):
     st.stop()
 
 # --- SAYFA YAPILANDIRMASI VE BAŞLIK ---
-st.set_page_config(page_title="Isı Transferi Hesaplayıcısı", page_icon="🔥")
 st.title("🔥 Isı Transferi Hesaplayıcısı")
 st.markdown("Bu modül, çok katmanlı duvarlarda iletim ve konveksiyon etkilerini göz önünde bulundurarak ısı transferi hesaplamaları yapmanızı sağlar.")
 

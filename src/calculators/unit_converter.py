@@ -132,7 +132,7 @@ def convert_units(value, from_unit, to_unit):
     to_unit_norm = to_unit.strip().lower()
     from_unit_eng = UNIT_ALIASES.get(from_unit_norm, from_unit_norm)
     to_unit_eng = UNIT_ALIASES.get(to_unit_norm, to_unit_norm)
-    print(f"[DEBUG] value: {value}, from_unit: '{from_unit}' -> '{from_unit_eng}', to_unit: '{to_unit}' -> '{to_unit_eng}'")
+
     try:
         val = value * ureg(from_unit_eng)
         result = val.to(to_unit_eng)

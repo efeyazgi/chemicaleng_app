@@ -64,6 +64,7 @@ def calculate_properties(chemical_name, temperature_input, pressure_input, unit_
                 elif prop_key == 'mu': value *= 671.97; unit = 'lb/ft·s'
                 elif prop_key == 'Cp': value /= 4184; unit = 'Btu/lb·°F'
                 elif prop_key == 'k': value /= 1.73073; unit = 'Btu/hr·ft·°F'
+                elif prop_key == 'sigma': value *= 0.0685218; unit = 'lbf/ft'
                 display_value = f"{value:.4g}"
             
             results.append({"Özellik": prop_name, "Değer": display_value, "Birim": unit})

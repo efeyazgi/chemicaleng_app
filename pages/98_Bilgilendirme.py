@@ -30,12 +30,12 @@ gibi araçları içerir.
 elif secim == "🔒 Gizlilik Politikası":
     st.subheader("Gizlilik Politikası")
     st.markdown("""
-Bu uygulama kullanıcıların **hiçbir kişisel verisini toplamaz**.
+Bu uygulama, kimlik doğrulama ve oturum yönetimi amacıyla sınırlı verileri işler.
 
-- **Çerez veya izleyici içermez.**
-- **Veriler yalnızca geçici olarak cihazınızda işlenir.**
-- **Sunucuya veri gönderimi yapılmaz.**
+- "Beni Hatırla" seçeneği ile kalıcı bir oturum çerezi kullanılabilir.
+- Kimlik doğrulama, Firebase hizmeti üzerinden sağlanır; e‑posta adresiniz yalnızca giriş ve hesap oluşturma amacıyla kullanılır.
+- Uygulama analitik/izleme çerezi içermez.
+- Hesaplama girdileri tarayıcınızda işlenir; sunucuya yalnızca kimlik doğrulama için gerekli minimal veriler iletilir.
 
-Uygulama, tamamen **eğitim ve kişisel kullanım amaçlıdır**.  
-Hiçbir ticari veya veri toplama faaliyeti içermez.
+Uygulama, **eğitim ve kişisel kullanım** amaçlıdır.
 """)

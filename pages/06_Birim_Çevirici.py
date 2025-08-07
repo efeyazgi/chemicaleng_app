@@ -116,7 +116,7 @@ unit_translations = {
     "meter/second": "m/s",
     "kilometer/hour": "km/s",
     "foot/second": "ft/s",
-    "mile/hour": "mil/s",
+    "mile/hour": "Mil/saat (mph)",
     "knot": "Knot (kn)",
 
     # Viskozite (Dinamik)

@@ -1,4 +1,5 @@
 import streamlit as st
+st.set_page_config(page_title="Ayırma İşlemleri", page_icon="⚗️")
 import pandas as pd
 import plotly.graph_objs as go
 from src.calculators.separation_calculator import (
@@ -23,7 +24,6 @@ if st.session_state.get("is_guest", False):
     st.stop()
 
 # --- SAYFA YAPILANDIRMASI VE BAŞLIK ---
-st.set_page_config(page_title="Ayırma İşlemleri", page_icon="⚗️")
 st.title("⚗️ Ayırma İşlemleri (Distilasyon)")
 
 
