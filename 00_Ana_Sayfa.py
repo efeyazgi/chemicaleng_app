@@ -15,32 +15,31 @@ st.set_page_config(
 
 # --- COOKIE YÖNETİCİSİ ---
 try:
-    # Tarayıcı çerezlerini yönetmek için bir anahtar belirler.
-    # Bu anahtar, güvenlik için .streamlit/secrets.toml dosyasından okunur.
-    cookies = CookieManager(key=st.secrets["cookie_manager_key"])
-except Exception as e:
-    st.error(f"Cookie yöneticisi başlatılamadı. Hata: {e}")
-    st.stop()
+    cm_key = st.secrets.get("cookie_manager_key", "chemcalc_cookie_manager")
+except Exception:
+    cm_key = "chemcalc_cookie_manager"
+cookies = CookieManager(key=cm_key)
 
 
 # --- FIREBASE YAPILANDIRMASI 
+auth = None
 try:
+    fc = st.secrets["firebase"]
     firebase_config = {
-        "apiKey": st.secrets["firebase"]["apiKey"],
-        "authDomain": st.secrets["firebase"]["authDomain"],
-        "projectId": st.secrets["firebase"]["projectId"],
-        "storageBucket": st.secrets["firebase"]["storageBucket"],
-        "messagingSenderId": st.secrets["firebase"]["messagingSenderId"],
-        "appId": st.secrets["firebase"]["appId"],
-        "measurementId": st.secrets["firebase"]["measurementId"],
-        "databaseURL": st.secrets["firebase"]["databaseURL"]
+        "apiKey": fc["apiKey"],
+        "authDomain": fc["authDomain"],
+        "projectId": fc["projectId"],
+        "storageBucket": fc["storageBucket"],
+        "messagingSenderId": fc["messagingSenderId"],
+        "appId": fc["appId"],
+        "measurementId": fc.get("measurementId", ""),
+        "databaseURL": fc.get("databaseURL", "")
     }
 
     firebase = pyrebase.initialize_app(firebase_config)
     auth = firebase.auth()
 except Exception as e:
-    st.error(f"Firebase başlatılırken bir hata oluştu. Lütfen .streamlit/secrets.toml dosyanızı kontrol edin. Hata: {e}")
-    st.stop()
+    st.warning("Kimlik doğrulama yapılandırılamadı; misafir olarak devam edebilirsiniz.")
 
 
 # --- KİMLİK DOĞRULAMA YARDIMCI FONKSİYONLARI ---
@@ -77,7 +76,7 @@ if "logged_in" not in st.session_state:
 # Manuel girişe müdahale etmemesi için, bir oturum boyunca sadece bir kez çalışır.
 just_logged_out = st.session_state.pop('just_logged_out', False)
 if not st.session_state.get('initial_cookie_check_done'):
-    if not check_login() and not just_logged_out:
+    if auth is not None and (not check_login()) and (not just_logged_out):
         remember_me_token = cookies.get("remember_me_token")
         if remember_me_token:
             try:
@@ -114,60 +113,66 @@ if not check_login():
     _ , center_col, _ = st.columns([1, 2, 1])
 
     with center_col:
-        login_tab, register_tab = st.tabs(["Giriş Yap", "Kayıt Ol"])
+        if auth is None:
+            st.info("Giriş/Kayıt geçici olarak kullanılamıyor. Misafir olarak devam edebilirsiniz.")
+            if st.button("👤 Misafir Olarak Devam Et", use_container_width=True):
+                set_guest()
+                st.rerun()
+        else:
+            login_tab, register_tab = st.tabs(["Giriş Yap", "Kayıt Ol"])
 
-        with login_tab:
-            st.markdown("### 🔐 Giriş Yap")
-            with st.form(key="login_form"):
-                email = st.text_input("Email")
-                password = st.text_input("Şifre", type="password")
-                remember_me = st.checkbox("Beni Hatırla")
-                submit_button = st.form_submit_button(label="Giriş Yap", use_container_width=True)
+            with login_tab:
+                st.markdown("### 🔐 Giriş Yap")
+                with st.form(key="login_form"):
+                    email = st.text_input("Email")
+                    password = st.text_input("Şifre", type="password")
+                    remember_me = st.checkbox("Beni Hatırla")
+                    submit_button = st.form_submit_button(label="Giriş Yap", use_container_width=True)
 
-                if submit_button:
-                    if not email or not password:
-                        st.warning("Lütfen email ve şifre alanlarını doldurun.")
-                    else:
-                        try:
-                            user = auth.sign_in_with_email_and_password(email, password)
-                            
-                            st.session_state.logged_in = True
-                            st.session_state.email = email
-                            st.session_state.is_guest = False
+                    if submit_button:
+                        if not email or not password:
+                            st.warning("Lütfen email ve şifre alanlarını doldurun.")
+                        else:
+                            try:
+                                user = auth.sign_in_with_email_and_password(email, password)
+                                
+                                st.session_state.logged_in = True
+                                st.session_state.email = email
+                                st.session_state.is_guest = False
 
-                            if remember_me:
-                                refresh_token = user['refreshToken']
-                                cookies.set(
-                                    "remember_me_token",
-                                    refresh_token,
-                                    expires_at=datetime.datetime.now() + datetime.timedelta(days=30)
-                                )
+                                if remember_me:
+                                    refresh_token = user['refreshToken']
+                                    cookies.set(
+                                        "remember_me_token",
+                                        refresh_token,
+                                        expires_at=datetime.datetime.now() + datetime.timedelta(days=30)
+                                    )
 
-                            st.success("Giriş başarılı! Yönlendiriliyorsunuz...")
-                            time.sleep(1)
-                            st.rerun()
-                        except Exception as e:
-                            st.error("Email veya şifre hatalı. Lütfen bilgilerinizi kontrol edin.")
+                                st.success("Giriş başarılı! Yönlendiriliyorsunuz...")
+                                time.sleep(1)
+                                st.rerun()
+                            except Exception as e:
+                                st.error("Email veya şifre hatalı. Lütfen bilgilerinizi kontrol edin.")
 
-        with register_tab:
-            st.markdown("### 🆕 Kayıt Ol")
-            with st.form(key="register_form"):
-                reg_email = st.text_input("Email Adresiniz", key="reg_email")
-                reg_password = st.text_input("Şifre Belirleyin", type="password", key="reg_pass")
-                reg_password_confirm = st.text_input("Şifreyi Onaylayın", type="password", key="reg_pass_confirm")
-                register_button = st.form_submit_button(label="Kayıt Ol", use_container_width=True)
+            with register_tab:
+                st.markdown("### 🆕 Kayıt Ol")
+                with st.form(key="register_form"):
+                    reg_email = st.text_input("Email Adresiniz", key="reg_email")
+                    reg_password = st.text_input("Şifre Belirleyin", type="password", key="reg_pass")
+                    reg_password_confirm = st.text_input("Şifreyi Onaylayın", type="password", key="reg_pass_confirm")
+                    register_button = st.form_submit_button(label="Kayıt Ol", use_container_width=True)
 
-                if register_button:
-                    if not reg_email or not reg_password:
-                        st.warning("Lütfen tüm alanları doldurun.")
-                    elif reg_password != reg_password_confirm:
-                        st.warning("Şifreler eşleşmiyor.")
-                    else:
-                        try:
-                            auth.create_user_with_email_and_password(reg_email, reg_password)
-                            st.success("✅ Kayıt başarılı! Artık 'Giriş Yap' sekmesinden giriş yapabilirsiniz.")
-                        except Exception as e:
-                            st.error(f"❌ Kayıt başarısız. Bu e-posta zaten kullanılıyor olabilir.")
+                    if register_button:
+                        if not reg_email or not reg_password:
+                            st.warning("Lütfen tüm alanları doldurun.")
+                        elif reg_password != reg_password_confirm:
+                            st.warning("Şifreler eşleşmiyor.")
+                        else:
+                            try:
+                                auth.create_user_with_email_and_password(reg_email, reg_password)
+                                st.success("✅ Kayıt başarılı! Artık 'Giriş Yap' sekmesinden giriş yapabilirsiniz.")
+                            except Exception as e:
+                                st.error(f"❌ Kayıt başarısız. Bu e-posta zaten kullanılıyor olabilir.")
 
         st.markdown("<p style='text-align: center;'>veya</p>", unsafe_allow_html=True)
 
