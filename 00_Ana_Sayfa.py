@@ -1,7 +1,6 @@
 import streamlit as st
 import time
 import datetime
-import pyrebase
 from extra_streamlit_components import CookieManager
 import os
 
@@ -24,6 +23,8 @@ cookies = CookieManager(key=cm_key)
 # --- FIREBASE YAPILANDIRMASI 
 auth = None
 try:
+    from importlib import import_module
+    pyrebase = import_module("pyrebase")
     fc = st.secrets["firebase"]
     firebase_config = {
         "apiKey": fc["apiKey"],

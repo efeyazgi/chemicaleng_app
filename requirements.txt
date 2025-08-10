@@ -12,3 +12,4 @@ pyrebase4
 extra-streamlit-components
 pyfluids
 requests>=2.32.2
+setuptools>=68
