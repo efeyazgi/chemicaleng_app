@@ -60,35 +60,38 @@ with st.expander("🧮 Giriş Parametreleri", expanded=True):
 # --- SONUÇLARI GÖSTER (Varsa) ---
 props = st.session_state.get("psychro_props")
 if props:
-    st.subheader("📌 Hesaplanan Özellikler")
+    if "Hata" in props:
+        st.error(props["Hata"])
+    else:
+        st.subheader("📌 Hesaplanan Özellikler")
 
-    units = st.session_state.get("psychro_units", units)
-    t_unit = units.get('T', 'degC')
-    vol_unit = units.get('Vol', 'm**3') # Özgül hacim m3/kg
-    energy_unit = units.get('Energy', 'kJ') # Entalpi kJ/kg
-    mass_unit = units.get('Mass', 'kg')
-    
-    # Çevrimler
-    # props['T_wb (°C)'] -> t_unit
-    twb_val = convert_value(props['T_wb (°C)'], 'degC', t_unit)
-    tdp_val = convert_value(props['T_dp (°C)'], 'degC', t_unit)
-    
-    # h (kJ/kg_dry) -> energy_unit / mass_unit
-    # Pint ile kJ/kg -> hedef
-    h_val = convert_value(props['h (kJ/kg_dry)'], 'kJ/kg', f"{energy_unit}/{mass_unit}")
-    
-    # v (m³/kg_dry) -> vol_unit / mass_unit
-    v_val = convert_value(props['v (m³/kg_dry)'], 'm**3/kg', f"{vol_unit}/{mass_unit}")
-    
-    col1, col2, col3 = st.columns(3)
-    with col1: render_card("Yaş Termometre", f"{twb_val:.2f}", unit=format_unit(t_unit))
-    with col2: render_card("Çiğ Noktası", f"{tdp_val:.2f}", unit=format_unit(t_unit))
-    with col3: render_card("Bağıl Nem", f"{props['RH (%)']:.1f}", unit="%")
+        units = st.session_state.get("psychro_units", units)
+        t_unit = units.get('T', 'degC')
+        vol_unit = units.get('Vol', 'm**3') # Özgül hacim m3/kg
+        energy_unit = units.get('Energy', 'kJ') # Entalpi kJ/kg
+        mass_unit = units.get('Mass', 'kg')
+        
+        # Çevrimler
+        # props['T_wb (°C)'] -> t_unit
+        twb_val = convert_value(props['T_wb (°C)'], 'degC', t_unit)
+        tdp_val = convert_value(props['T_dp (°C)'], 'degC', t_unit)
+        
+        # h (kJ/kg_dry) -> energy_unit / mass_unit
+        # Pint ile kJ/kg -> hedef
+        h_val = convert_value(props['h (kJ/kg_dry)'], 'kJ/kg', f"{energy_unit}/{mass_unit}")
+        
+        # v (m³/kg_dry) -> vol_unit / mass_unit
+        v_val = convert_value(props['v (m³/kg_dry)'], 'm**3/kg', f"{vol_unit}/{mass_unit}")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1: render_card("Yaş Termometre", f"{twb_val:.2f}", unit=format_unit(t_unit))
+        with col2: render_card("Çiğ Noktası", f"{tdp_val:.2f}", unit=format_unit(t_unit))
+        with col3: render_card("Bağıl Nem", f"{props['RH (%)']:.1f}", unit="%")
 
-    col4, col5, col6 = st.columns(3)
-    with col4: render_card("Nem Oranı", f"{props['w (kg_water/kg_dry)']:.5f}", unit="kg/kg")
-    with col5: render_card("Entalpi", f"{h_val:.2f}", unit=f"{format_unit(energy_unit)}/{format_unit(mass_unit)} dry")
-    with col6: render_card("Özgül Hacim", f"{v_val:.4f}", unit=f"{format_unit(vol_unit)}/{format_unit(mass_unit)}")
+        col4, col5, col6 = st.columns(3)
+        with col4: render_card("Nem Oranı", f"{props['w (kg_water/kg_dry)']:.5f}", unit="kg/kg")
+        with col5: render_card("Entalpi", f"{h_val:.2f}", unit=f"{format_unit(energy_unit)}/{format_unit(mass_unit)} dry")
+        with col6: render_card("Özgül Hacim", f"{v_val:.4f}", unit=f"{format_unit(vol_unit)}/{format_unit(mass_unit)}")
 
 # --- PSİKROMETRİK DİYAGRAM ---
 st.divider()
