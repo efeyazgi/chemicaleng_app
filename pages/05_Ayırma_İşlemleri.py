@@ -1,163 +1,245 @@
+
 import streamlit as st
-st.set_page_config(page_title="Ayırma İşlemleri", page_icon="⚗️")
 import pandas as pd
-import plotly.graph_objs as go
-from src.calculators.separation_calculator import (
-    calculate_mccabe_thiele_lines,
-    calculate_theoretical_trays,
-)
+import altair as alt
+import numpy as np
+from src.calculators.separation_calculator import calculate_mccabe_thiele, calculate_ponchon_savarit
+from src.calculators.thermo_calculator import get_chemical_list
+from src.utils.unit_manager import render_global_settings_sidebar, render_local_unit_override, convert_value, format_unit
+from src.utils.ui_helper import load_css, render_header, render_card, render_info_card
 
-# --- GİRİŞ KONTROLÜ (GÜNCELLENMİŞ BLOK) ---
-# Bu blok, sayfaya erişim için kullanıcının oturum açıp açmadığını ve misafir olup olmadığını kontrol eder.
-# Bu yöntem, silinen auth.py dosyası yerine doğrudan st.session_state'i kullanır.
-if not st.session_state.get("logged_in", False):
-    st.error("Bu sayfayı görüntülemek için lütfen ana sayfadan giriş yapın.")
-    # Kullanıcıyı ana sayfaya yönlendirmek için bir link ekleniyor.
-    st.page_link("00_Ana_Sayfa.py", label="Ana Sayfaya Dön", icon="🏠")
-    st.stop() # Sayfanın geri kalanının yüklenmesini engeller.
+load_css()
+from src.utils.ui_helper import load_css, render_header, render_card, render_info_card
 
-# Misafir kullanıcıların bu modüle erişimini engelleme
-if st.session_state.get("is_guest", False):
-    st.warning("Bu modül yalnızca kayıtlı kullanıcılar içindir.")
-    st.info("Lütfen ana sayfaya dönüp kayıtlı bir kullanıcı ile giriş yapın.")
-    st.page_link("00_Ana_Sayfa.py", label="Ana Sayfaya Dön", icon="🏠")
-    st.stop()
+load_css()
 
-# --- SAYFA YAPILANDIRMASI VE BAŞLIK ---
-st.title("⚗️ Ayırma İşlemleri (Distilasyon)")
+st.set_page_config(page_title="Ayırma İşlemleri", page_icon="⚗️", layout="wide")
 
+render_header("Ayırma İşlemleri", "⚗️")
+st.markdown("İkili karışımların distilasyon kolon hesaplamaları (McCabe-Thiele ve Ponchon-Savarit Yöntemleri).")
+st.markdown("---")
 
-# --- GİRİŞ BİLGİLERİ ---
-with st.expander("🧪 Sistem ve Akış Bilgileri", expanded=True):
-    common_chems = [
-        "water", "ethanol", "methanol", "benzene", "toluene",
-        "acetone", "ammonia", "carbon dioxide", "oxygen",
-        "nitrogen", "air", "methane", "propane", "butane"
-    ]
-    col1, col2 = st.columns(2)
-    with col1:
-        chem1 = st.selectbox("Hafif Bileşen", common_chems, index=3)
-    with col2:
-        chem2 = st.selectbox("Ağır Bileşen", common_chems, index=4)
+# --- GİRİŞLER ---
+col_left, col_right = st.columns([1, 2])
 
-    P = st.number_input("Kolon Basıncı (Pa)", value=101325.0)
+with col_left:
+    # Global Ayarlar
+    render_global_settings_sidebar()
+    
+    # Yerel Ayarlar
+    unit_system, units = render_local_unit_override("separation")
 
-    st.markdown("#### 📊 Kompozisyon ve İşletme Koşulları")
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        zF = st.number_input("Besleme Mol Fraksiyonu zF", 0.01, 0.99, 0.50, step=0.01, format="%.2f")
-    with c2:
-        xD = st.number_input("Distilat Mol Fraksiyonu xD", 0.01, 0.99, 0.95, step=0.01, format="%.2f")
-    with c3:
-        xB = st.number_input("Dip Mol Fraksiyonu xB", 0.01, 0.99, 0.05, step=0.01, format="%.2f")
-
-    c4, c5 = st.columns(2)
-    with c4:
-        q = st.number_input("Besleme Kalitesi q", 0.0, 1.0, 1.0, step=0.01, format="%.2f")
-    with c5:
-        R = st.number_input("Reflüks Oranı R", 0.0, 20.0, 2.5, step=0.1, format="%.2f")
-
-    st.markdown("#### 🔧 Sistem Donanımları")
-    colk1, colk2 = st.columns(2)
-    with colk1:
-        use_reboiler = st.checkbox("Kazan (Reboiler) Var", value=True)
-    with colk2:
-        use_condenser = st.checkbox("Yoğuşturucu (Condenser) Var", value=True)
-
-    submit = st.button("🧮 Analizi Başlat")
-
-# --- HESAPLAMA ---
-if submit:
+    st.subheader("⚙️ Parametreler")
+    
+    # Yöntem Seçimi
+    method = st.radio("Hesaplama Yöntemi:", ["McCabe-Thiele", "Ponchon-Savarit"], horizontal=True)
+    
+    # Akışkan Seçimi
+    chem_list = get_chemical_list()
+    chem_names_display = list(chem_list.values())
+    chem_map = {v: k for k, v in chem_list.items()}
+    
+    col_c1, col_c2 = st.columns(2)
+    with col_c1:
+        c1_disp = st.selectbox("Uçucu Bileşen (1)", chem_names_display, index=1) # Ethanol
+    with col_c2:
+        c2_disp = st.selectbox("Ağır Bileşen (2)", chem_names_display, index=0) # Water
+        
+    chem1 = chem_map[c1_disp]
+    chem2 = chem_map[c2_disp]
+    
     if chem1 == chem2:
         st.error("Lütfen iki farklı bileşen seçin.")
-    elif not (xB < zF < xD):
-        st.error("Kompozisyonlar şu şartı sağlamalı: xB < zF < xD")
+        st.stop()
+        
+    # İşletme Koşulları
+    st.markdown("### 🌡️ İşletme Koşulları")
+    
+    p_unit = units.get('P', 'bar')
+    P_input = st.number_input(f"Basınç ({format_unit(p_unit)})", value=1.01325, format="%.5f")
+    # SI'ya çevir (Pa)
+    P = convert_value(P_input, p_unit, 'Pa')
+    
+    st.markdown("### 📊 Konsantrasyonlar (Mol Kesri)")
+    zF = st.slider("Besleme (zF)", 0.0, 1.0, 0.5)
+    xD = st.slider("Distilat (xD)", 0.0, 1.0, 0.95)
+    xB = st.slider("Dip Ürün (xB)", 0.0, 1.0, 0.05)
+    
+    st.markdown("### ⚙️ Kolon Ayarları")
+    
+    # Besleme Durumu Seçimi
+    feed_condition_type = st.radio("Besleme Durumu:", ["q (Kalite) ile Belirle", "Sıcaklık ile Belirle"], horizontal=True)
+    
+    if feed_condition_type == "q (Kalite) ile Belirle":
+        q = st.number_input("Besleme Kalitesi (q)", value=1.0, help="q=1: Doygun Sıvı, q=0: Doygun Buhar, q>1: Alt Soğutulmuş Sıvı")
     else:
+        # Varsayılan sıcaklık tahmini (Kaynama noktası civarı)
         try:
-            with st.spinner("Hesaplanıyor..."):
-                vle_df, q_df, rect_df, strip_df = calculate_mccabe_thiele_lines(
-                    chem1, chem2, P, zF, xD, xB, q, R
-                )
-                trays, pts = calculate_theoretical_trays(
-                    chem1, chem2, P, zF, xD, xB, q, R
-                )
+            from thermo import Chemical
+            T_boil_K = Chemical(chem1, P=P).Tb
+        except:
+            T_boil_K = 350.0
+        
+        t_unit = units.get('T', 'K')
+        # Varsayılan değeri hedef birime çevir
+        T_boil_val = convert_value(T_boil_K, 'K', t_unit)
+            
+        T_feed_input = st.number_input(f"Besleme Sıcaklığı ({format_unit(t_unit)})", value=float(T_boil_val), format="%.2f")
+        # SI'ya çevir (K)
+        T_feed = convert_value(T_feed_input, t_unit, 'K')
+        q = None # Daha sonra hesaplanacak
 
-                # Hesaplama sonuçlarını oturum durumunda sakla
-                st.session_state["mccabe_fig_data"] = {
-                    "vle_df": vle_df,
-                    "q_df": q_df,
-                    "rect_df": rect_df,
-                    "strip_df": strip_df,
-                    "pts": pts,
-                    "chem1": chem1,
-                    "chem2": chem2,
-                    "P": P,
-                    "trays": trays,
-                    "zF": zF,
-                    "use_reboiler": use_reboiler,
-                    "use_condenser": use_condenser
-                }
+    R = st.number_input("Geri Akış Oranı (R)", value=1.5, min_value=0.0)
+    
+    calc_btn = st.button("🚀 Hesapla", type="primary", use_container_width=True)
 
-        except Exception as e:
-            st.error(f"Analiz sırasında hata: {e}")
+# --- SONUÇLAR ---
+with col_right:
+    if calc_btn:
+        with st.spinner("Hesaplanıyor... (Termodinamik veriler çekiliyor)"):
+            try:
+                # Eğer sıcaklık seçildiyse q'yu hesapla
+                if feed_condition_type == "Sıcaklık ile Belirle":
+                    from src.calculators.separation_calculator import calculate_q_from_T
+                    q = calculate_q_from_T(chem1, chem2, P, zF, T_feed)
+                    st.info(f"ℹ️ Hesaplanan Besleme Kalitesi (q): **{q:.4f}**")
 
-# --- SONUÇLAR VE GRAFİK ---
-# Saklanan veriler varsa göster
-data = st.session_state.get("mccabe_fig_data")
-if data:
-    st.divider()
-    st.subheader("📌 Teorik Sonuçlar")
+                if method == "McCabe-Thiele":
+                    vle_df, q_df, rect_df, strip_df, trays, steps = calculate_mccabe_thiele(
+                        chem1, chem2, P, zF, xD, xB, q, R
+                    )
+                    
+                    st.success(f"✅ Teorik Raf Sayısı: **{trays}**")
+                    
+                    # Grafik
+                    base = alt.Chart(pd.DataFrame({'x': [0, 1], 'y': [0, 1]})).mark_rule(color='lightgray', strokeDash=[5, 5]).encode(x='x', y='y')
+                    
+                    vle_chart = alt.Chart(vle_df).mark_line(color='#1f77b4', strokeWidth=3).encode(
+                        x=alt.X('x', title=f'Sıvı Mol Kesri ({chem1})'),
+                        y=alt.Y('y', title=f'Buhar Mol Kesri ({chem1})'),
+                        tooltip=['x', 'y', 'T']
+                    )
+                    
+                    rect_chart = alt.Chart(rect_df).mark_line(color='#2ca02c', strokeWidth=2).encode(x='x', y='y') # Green
+                    strip_chart = alt.Chart(strip_df).mark_line(color='#d62728', strokeWidth=2).encode(x='x', y='y') # Red
+                    q_chart = alt.Chart(q_df).mark_line(color='#9467bd', strokeDash=[5, 5]).encode(x='x', y='y') # Purple
+                    
+                    steps_df = pd.DataFrame(steps, columns=['x', 'y'])
+                    steps_chart = alt.Chart(steps_df).mark_line(color='black', strokeWidth=1.5, interpolate='step-after').encode(x='x', y='y')
+                    
+                    chart = (base + vle_chart + rect_chart + strip_chart + q_chart + steps_chart).properties(
+                        title="McCabe-Thiele Diyagramı",
+                        height=600
+                    ).interactive()
+                    
+                    st.altair_chart(chart, use_container_width=True)
+                    
+                else: # Ponchon-Savarit
+                    df, points, trays, steps = calculate_ponchon_savarit(
+                        chem1, chem2, P, zF, xD, xB, q, R
+                    )
+                    
+                    if trays == float('inf'):
+                         st.error("❌ Ayırma bu koşullarda mümkün değil veya çok zor (R < R_min veya Pinch Noktası). Lütfen Geri Akış Oranını (R) artırın.")
+                    else:
+                        st.success(f"✅ Teorik Raf Sayısı: **{trays}**")
+                        render_card("Teorik Raf Sayısı", str(trays), unit="Adet")
+                    
+                    # H-x-y Diyagramı
+                    # Entalpi birimi
+                    energy_unit = units.get('Energy', 'J')
+                    # Ponchon-Savarit J/mol döner
+                    # Hedef birim: energy_unit / mol (e.g. kJ/mol)
+                    # Ancak energy_unit sadece J, kJ, Btu vs.
+                    # Biz J/mol -> energy_unit/mol çevireceğiz.
+                    
+                    # Basitçe J -> energy_unit çevirimi yapıp grafikte gösterebiliriz, çünkü payda mol sabit.
+                    # Fakat kullanıcı J/kg gibi bir şey beklemiyor, molar entalpi bekliyor.
+                    # Unit manager'da MolarEnergy yok, ama Energy var.
+                    # J -> kJ çevirimi yeterli olur.
+                    
+                    # df['HL'] ve df['HV'] J/mol cinsinden.
+                    # Bunları hedef birime çevirelim.
+                    
+                    target_h_unit = f"{energy_unit}/mol"
+                    # Pint ile J/mol -> target_h_unit
+                    
+                    # Veriyi kopyalayalım
+                    df_plot = df.copy()
+                    df_plot['HL'] = [convert_value(x, 'J/mol', target_h_unit) for x in df['HL']]
+                    df_plot['HV'] = [convert_value(x, 'J/mol', target_h_unit) for x in df['HV']]
+                    
+                    # Noktaları da çevirelim
+                    points_plot = {}
+                    for k, v in points.items():
+                         points_plot[k] = (v[0], convert_value(v[1], 'J/mol', target_h_unit))
+                    
+                    h_axis_title = f"Entalpi ({format_unit(energy_unit)}/mol)"
 
-    # Besleme tepsisi (en yakın adımda)
-    feed_index = None
-    for i in range(0, len(data["pts"]) - 1, 2):
-        x1, _ = data["pts"][i]
-        x2, _ = data["pts"][i + 1]
-        if x1 <= data["zF"] <= x2 or x2 <= data["zF"] <= x1:
-            feed_index = i // 2
-            break
+                    # Doygun Sıvı Eğrisi
+                    liq_chart = alt.Chart(df_plot).mark_line(color='#1f77b4', strokeWidth=3).encode(
+                        x=alt.X('x', title=f'Mol Kesri ({chem1})'),
+                        y=alt.Y('HL', title=h_axis_title),
+                        tooltip=['x', 'HL', 'T']
+                    )
+                    
+                    # Doygun Buhar Eğrisi
+                    vap_chart = alt.Chart(df_plot).mark_line(color='#d62728', strokeWidth=3).encode(
+                        x=alt.X('y', title=f'Mol Kesri ({chem1})'),
+                        y=alt.Y('HV', title=h_axis_title),
+                        tooltip=['y', 'HV', 'T']
+                    )
+                    
+                    # Delta Noktaları ve F
+                    pts_data = pd.DataFrame([
+                        {'x': points_plot['F'][0], 'H': points_plot['F'][1], 'Label': 'F'},
+                        {'x': points_plot['D'][0], 'H': points_plot['D'][1], 'Label': 'D'},
+                        {'x': points_plot['B'][0], 'H': points_plot['B'][1], 'Label': 'B'},
+                        {'x': points_plot['Delta_D'][0], 'H': points_plot['Delta_D'][1], 'Label': 'ΔD'},
+                        {'x': points_plot['Delta_B'][0], 'H': points_plot['Delta_B'][1], 'Label': 'ΔB'},
+                    ])
+                    
+                    pts_chart = alt.Chart(pts_data).mark_point(size=100, filled=True, color='black').encode(
+                        x='x', y='H', tooltip=['Label', 'x', 'H']
+                    )
+                    
+                    text_chart = pts_chart.mark_text(align='left', dx=5, dy=-5).encode(text='Label')
+                    
+                    # Tie-lines (Denge Bağları) ve Operasyon Çizgileri
+                    # Steps listesi: (x, HL) -> (y, HV) -> (x_next, HL_next) ...
+                    # Bunları çizmek için segmentler oluşturmalıyız.
+                    
+                    lines_data = []
+                    for i in range(len(steps)-1):
+                        p1 = steps[i]
+                        p2 = steps[i+1]
+                        # Koordinatları çevir
+                        h1 = convert_value(p1[1], 'J/mol', target_h_unit)
+                        h2 = convert_value(p2[1], 'J/mol', target_h_unit)
+                        lines_data.append({'x1': p1[0], 'H1': h1, 'x2': p2[0], 'H2': h2, 'Type': 'Tie' if i%2==0 else 'Op'})
+                        
+                    lines_df = pd.DataFrame(lines_data)
+                    if not lines_df.empty:
+                        lines_chart = alt.Chart(lines_df).mark_line(strokeWidth=1).encode(
+                            x='x1', y='H1', x2='x2', y2='H2', 
+                            color=alt.Color('Type', scale=alt.Scale(domain=['Tie', 'Op'], range=['green', 'orange']))
+                        )
+                        chart = (liq_chart + vap_chart + pts_chart + text_chart + lines_chart).properties(
+                            title="Ponchon-Savarit Diyagramı (H-x-y)",
+                            height=600
+                        ).interactive()
+                    else:
+                        chart = (liq_chart + vap_chart + pts_chart + text_chart).properties(height=600).interactive()
 
-    extra = int(data["use_reboiler"]) + int(data["use_condenser"])
-    total_trays = data["trays"] + extra
+                    st.altair_chart(chart, use_container_width=True)
+                    
+                    # VLE Grafiği de gösterelim (Referans için)
+                    with st.expander("VLE Diyagramı"):
+                        vle_chart = alt.Chart(df).mark_line().encode(x='x', y='y').properties(title="x-y Diyagramı")
+                        st.altair_chart(vle_chart, use_container_width=True)
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("🔢 Teorik Raf Sayısı", f"{data['trays']}")
-    col2.metric("📍 Besleme Rafı", f"{feed_index + 1 if feed_index is not None else '-'}")
-    col3.metric("🧮 Toplam Raf Sayısı", f"{total_trays}")
-
-    # Grafik çizimi
-    eq_x = data['vle_df'].x.tolist()
-    eq_y = data['vle_df'].y.tolist()
-    diag_x, diag_y = [0, 1], [0, 1]
-    q_x, q_y = data['q_df'].x.tolist(), data['q_df'].y.tolist()
-    r_x, r_y = data['rect_df'].x.tolist(), data['rect_df'].y.tolist()
-    s_x, s_y = data['strip_df'].x.tolist(), data['strip_df'].y.tolist()
-    step_x, step_y = zip(*data['pts'])
-
-    fig = go.Figure(layout_template='plotly_dark')
-    fig.update_layout(
-        plot_bgcolor='rgba(30,30,30,1)',
-        paper_bgcolor='rgba(30,30,30,1)',
-        font=dict(color='white'),
-        title=f"McCabe–Thiele Diyagramı: {data['chem1']}–{data['chem2']} @ {data['P']/1e5:.2f} bar",
-        xaxis=dict(title=f"{data['chem1']} Mol Fraksiyonu (x)", gridcolor='#444444'),
-        yaxis=dict(title=f"{data['chem1']} Mol Fraksiyonu (y)", gridcolor='#444444'),
-        legend=dict(bgcolor='rgba(0,0,0,0)', font_color='white')
-    )
-
-    fig.add_trace(go.Scatter(x=eq_x, y=eq_y, name="Denge Eğrisi", mode="lines", line=dict(color="cyan")))
-    fig.add_trace(go.Scatter(x=diag_x, y=diag_y, name="y = x", mode="lines", line=dict(dash="dot", color="gray")))
-    fig.add_trace(go.Scatter(x=q_x, y=q_y, name="q-Line", mode="lines", line=dict(dash="dot", color="orange")))
-    fig.add_trace(go.Scatter(x=r_x, y=r_y, name="Zenginleştirme", mode="lines", line=dict(color="lime")))
-    fig.add_trace(go.Scatter(x=s_x, y=s_y, name="Sıyrılma", mode="lines", line=dict(color="red")))
-    fig.add_trace(go.Scatter(x=step_x, y=step_y, name=f"Raflar ({data['trays']})", mode="lines+markers", line=dict(color="white", dash="dash")))
-
-    fig.add_vline(
-        x=data['zF'],
-        line=dict(color="yellow", dash='dash'),
-        annotation_text=f"zF={data['zF']:.2f}",
-        annotation_position="top right",
-        annotation_font_color="yellow"
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
+            except Exception as e:
+                st.error(f"Hesaplama hatası: {e}")
+                # st.exception(e) # Debug için açılabilir
+    else:
+        st.info("👈 Parametreleri ayarlayıp 'Hesapla' butonuna basın.")

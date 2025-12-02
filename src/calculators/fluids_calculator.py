@@ -4,8 +4,17 @@ def calculate_reynolds(density, velocity, diameter, viscosity):
     """
     Verilen parametrelerle Reynolds sayısını ve akış tipini hesaplar.
     """
-    if any(v <= 0 for v in [density, velocity, diameter, viscosity]):
-        return None, None, "Tüm değerler sıfırdan büyük olmalıdır."
+    # Fiziksel kısıtlamalar:
+    # Yoğunluk > 0, Çap > 0, Viskozite > 0 (bölme hatası olmaması için)
+    # Hız >= 0 olabilir (akış yoksa Re=0)
+    if density <= 0:
+        return None, None, "Yoğunluk sıfırdan büyük olmalıdır."
+    if diameter <= 0:
+        return None, None, "Çap sıfırdan büyük olmalıdır."
+    if viscosity <= 0:
+        return None, None, "Viskozite sıfırdan büyük olmalıdır."
+    if velocity < 0:
+        return None, None, "Hız negatif olamaz."
 
     reynolds_number = (density * velocity * diameter) / viscosity
     
@@ -26,11 +35,16 @@ def calculate_pressure_drop(density, velocity, diameter, viscosity, length, roug
     if error:
         return None, None, error
     
-    if length <= 0 or roughness < 0:
-        return None, None, "Uzunluk pozitif, pürüzlülük pozitif veya sıfır olmalıdır."
+    if length <= 0:
+        return None, None, "Uzunluk sıfırdan büyük olmalıdır."
+    if roughness < 0:
+        return None, None, "Pürüzlülük negatif olamaz."
 
     # Sürtünme faktörünü hesapla
-    fd = friction_factor(Re=re, eD=roughness/diameter)
+    try:
+        fd = friction_factor(Re=re, eD=roughness/diameter)
+    except Exception as e:
+        return None, None, f"Sürtünme faktörü hesaplanırken hata: {str(e)}"
     
     # Basınç düşüşünü hesapla (Pa)
     pressure_drop = fd * (length / diameter) * (density * velocity**2) / 2

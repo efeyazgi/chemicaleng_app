@@ -1,0 +1,86 @@
+/* Global Styles */
+.stApp {
+    background-color: #F0F2F6;
+}
+
+/* Card Styling for Metrics */
+div[data-testid="stMetric"] {
+    background-color: #FFFFFF;
+    border: 1px solid #E0E0E0;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: transform 0.2s ease-in-out;
+}
+
+div[data-testid="stMetric"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Custom Card Class (for use with st.markdown) */
+.custom-card {
+    background-color: #FFFFFF;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    border-left: 5px solid #00ADB5;
+}
+
+.custom-card h3 {
+    margin-top: 0;
+    color: #00ADB5;
+    font-size: 1.2rem;
+}
+
+.custom-card .value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #262730;
+}
+
+.custom-card .unit {
+    font-size: 1rem;
+    color: #666;
+    margin-left: 5px;
+}
+
+/* Sidebar Styling */
+section[data-testid="stSidebar"] {
+    background-color: #FFFFFF;
+    border-right: 1px solid #E0E0E0;
+}
+
+/* Button Styling */
+div.stButton > button {
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+div.stButton > button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Header Styling */
+h1, h2, h3 {
+    font-family: 'Inter', sans-serif;
+    color: #262730;
+}
+
+h1 {
+    font-weight: 800;
+    background: -webkit-linear-gradient(45deg, #00ADB5, #007BFF);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    padding-bottom: 10px;
+}
+
+/* Expander Styling */
+.streamlit-expanderHeader {
+    background-color: #FFFFFF;
+    border-radius: 8px;
+    border: 1px solid #E0E0E0;
+}

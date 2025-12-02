@@ -23,6 +23,9 @@ def calculate_planar_wall_heat_transfer(t_inner, h_inner, t_outer, h_outer, area
     """
     if area <= 0:
         return None, None, "Alan sıfırdan büyük olmalıdır."
+    if h_inner <= 0 or h_outer <= 0:
+        return None, None, "Isı taşınım katsayıları (h) sıfırdan büyük olmalıdır."
+        
     # Konveksiyon
     r_conv_i = 1/(h_inner * area)
     r_conv_o = 1/(h_outer * area)
@@ -30,8 +33,10 @@ def calculate_planar_wall_heat_transfer(t_inner, h_inner, t_outer, h_outer, area
     r_cond_list = []
     for ly in layers:
         L = ly['thickness']; k = ly['conductivity']
-        if L < 0 or k <= 0:
-            return None, None, "Katman kalınlığı negatif olamaz, iletkenlik pozitif olmalı."
+        if L < 0:
+            return None, None, "Katman kalınlığı negatif olamaz."
+        if k <= 0:
+            return None, None, "Isıl iletkenlik sıfırdan büyük olmalıdır."
         r_cond_list.append(L/(k*area))
     r_total = r_conv_i + sum(r_cond_list) + r_conv_o
     q = (t_inner - t_outer)/r_total
@@ -72,12 +77,22 @@ def calculate_cylindrical_shell_heat_transfer(t_inner, h_inner, t_outer, h_outer
     Silindirik kabuktan ısı transferi.
     Dönen: q [W], r_total [K/W]
     """
+    if length <= 0:
+        return None, None, "Uzunluk sıfırdan büyük olmalıdır."
+    if r_inner <= 0 or r_outer <= 0:
+        return None, None, "Yarıçaplar sıfırdan büyük olmalıdır."
+    if r_outer <= r_inner:
+        return None, None, "Dış yarıçap iç yarıçaptan büyük olmalıdır."
+    if conductivity <= 0:
+        return None, None, "Isıl iletkenlik sıfırdan büyük olmalıdır."
+    if h_inner <= 0 or h_outer <= 0:
+        return None, None, "Isı taşınım katsayıları (h) sıfırdan büyük olmalıdır."
+
     A_i = 2*math.pi*r_inner*length
     A_o = 2*math.pi*r_outer*length
     r_conv_i = 1/(h_inner * A_i)
     r_conv_o = 1/(h_outer * A_o)
-    if r_outer <= r_inner or conductivity <=0 or length<=0:
-        return None, None, "Yarıçap ve iletkenlik değerleri hatalı."
+    
     r_cond = math.log(r_outer/r_inner)/(2*math.pi*conductivity*length)
     r_total = r_conv_i + r_cond + r_conv_o
     q = (t_inner - t_outer)/r_total
@@ -89,12 +104,20 @@ def calculate_spherical_shell_heat_transfer(t_inner, h_inner, t_outer, h_outer, 
     Küresel kabuktan ısı transferi.
     Dönen: q [W], r_total [K/W]
     """
+    if r_inner <= 0 or r_outer <= 0:
+        return None, None, "Yarıçaplar sıfırdan büyük olmalıdır."
+    if r_outer <= r_inner:
+        return None, None, "Dış yarıçap iç yarıçaptan büyük olmalıdır."
+    if conductivity <= 0:
+        return None, None, "Isıl iletkenlik sıfırdan büyük olmalıdır."
+    if h_inner <= 0 or h_outer <= 0:
+        return None, None, "Isı taşınım katsayıları (h) sıfırdan büyük olmalıdır."
+
     A_i = 4*math.pi*r_inner**2
     A_o = 4*math.pi*r_outer**2
     r_conv_i = 1/(h_inner * A_i)
     r_conv_o = 1/(h_outer * A_o)
-    if r_outer <= r_inner or conductivity <=0:
-        return None, None, "Yarıçap ve iletkenlik değerleri hatalı."
+    
     r_cond = (1/(4*math.pi*conductivity))*(1/r_inner - 1/r_outer)
     r_total = r_conv_i + r_cond + r_conv_o
     q = (t_inner - t_outer)/r_total

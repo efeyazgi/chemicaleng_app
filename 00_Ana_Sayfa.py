@@ -12,6 +12,9 @@ st.set_page_config(
     initial_sidebar_state="auto"
 )
 
+from src.utils.ui_helper import load_css, render_header, render_info_card
+load_css()
+
 # --- COOKIE YÖNETİCİSİ ---
 try:
     cm_key = st.secrets.get("cookie_manager_key", "chemcalc_cookie_manager")
@@ -107,8 +110,9 @@ if not st.session_state.get('initial_cookie_check_done'):
 
 if not check_login():
     # --- GİRİŞ YAPILMAMIŞ KULLANICI ARAYÜZÜ ---
-    st.markdown("<h1 style='text-align: center;'>ChemCalc Hesaplama Platformu</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: gray;'>Devam etmek için lütfen giriş yapın veya kayıt olun.</p>", unsafe_allow_html=True)
+    # --- GİRİŞ YAPILMAMIŞ KULLANICI ARAYÜZÜ ---
+    render_header("ChemCalc Hesaplama Platformu", "🧪")
+    st.markdown("<p style='text-align: center; color: #555; font-size: 1.1rem;'>Devam etmek için lütfen giriş yapın veya kayıt olun.</p>", unsafe_allow_html=True)
     st.markdown("---")
 
     _ , center_col, _ = st.columns([1, 2, 1])
@@ -116,7 +120,7 @@ if not check_login():
     with center_col:
         if auth is None:
             st.info("Giriş/Kayıt geçici olarak kullanılamıyor. Misafir olarak devam edebilirsiniz.")
-            if st.button("👤 Misafir Olarak Devam Et", use_container_width=True):
+            if st.button("👤 Misafir Olarak Devam Et", use_container_width=True, key="guest_btn_auth_none"):
                 set_guest()
                 st.rerun()
         else:
@@ -177,7 +181,7 @@ if not check_login():
 
         st.markdown("<p style='text-align: center;'>veya</p>", unsafe_allow_html=True)
 
-        if st.button("👤 Misafir Olarak Devam Et", use_container_width=True):
+        if st.button("👤 Misafir Olarak Devam Et", use_container_width=True, key="guest_btn_main"):
             set_guest()
             st.rerun()
 
@@ -209,12 +213,13 @@ else:
                 st.warning("Logo dosyası bulunamadı.")
 
     # --- ANA SAYFA İÇERİĞİ ---
-    st.title("ChemCalc Hesaplama Platformu")
+    # --- ANA SAYFA İÇERİĞİ ---
+    render_header("ChemCalc Hesaplama Platformu", "🧪")
     st.caption("Kimya Mühendisliği İçin Hepsi Bir Arada Araç Seti")
 
     st.markdown("---")
     st.subheader("🔍 Modül Seçimi")
-    st.write(
+    render_info_card(
         "Bu platform, kimya mühendisliği öğrencileri ve profesyonelleri için temel mühendislik "
         "hesaplamalarını kolay ve etkileşimli bir biçimde yapmayı amaçlar. Sol menüden veya aşağıdaki "
         "modüllerden seçim yapabilirsiniz."

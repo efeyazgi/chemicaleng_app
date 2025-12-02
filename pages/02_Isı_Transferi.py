@@ -14,6 +14,9 @@ from src.calculators.heat_transfer_calculator import (
     MATERIAL_LIBRARY,
     ureg
 )
+from src.utils.ui_helper import load_css, render_header, render_card, render_info_card
+
+load_css()
 
 # --- GİRİŞ KONTROLÜ (GÜNCELLENMİŞ BLOK) ---
 # Bu blok, sayfaya erişim için kullanıcının oturum açıp açmadığını ve misafir olup olmadığını kontrol eder.
@@ -33,7 +36,7 @@ if st.session_state.get("is_guest", False):
     st.stop()
 
 # --- SAYFA YAPILANDIRMASI VE BAŞLIK ---
-st.title("🔥 Isı Transferi Hesaplayıcısı")
+render_header("Isı Transferi Hesaplayıcısı", "🔥")
 st.markdown("Bu modül, çok katmanlı duvarlarda iletim ve konveksiyon etkilerini göz önünde bulundurarak ısı transferi hesaplamaları yapmanızı sağlar.")
 
 # Başlangıç katmanı
@@ -113,17 +116,15 @@ if geom == "Düzlem Duvar":
                 st.error(err)
                 st.stop()
             st.success(f"Toplam Isıl Direnç: {r:.4f} K/W")
-            st.success(f"Isı Transfer Hızı Q: {q.magnitude:,.2f} W ({q.to('kilowatt').magnitude:.3f} kW)")
-        else:
-            _, r, err = calculate_planar_wall_heat_transfer(
-                t_inner, h_inner, t_outer, h_outer, area, st.session_state.layers
-            )
-            if err:
-                st.error(err)
-                st.stop()
-            delta_T = q_input * r
-            st.success(f"Toplam Isıl Direnç: {r:.4f} K/W")
-            st.success(f"Sıcaklık Farkı ΔT: {delta_T:,.2f} K")
+            
+            col_res1, col_res2 = st.columns(2)
+            with col_res1:
+                 render_card("Toplam Isıl Direnç", f"{r:.4f}", unit="K/W")
+            with col_res2:
+                 if boundary == "Sıcaklık (T)":
+                     render_card("Isı Transfer Hızı Q", f"{q.magnitude:,.2f}", unit="W", description=f"{q.to('kilowatt').magnitude:.3f} kW")
+                 else:
+                     render_card("Sıcaklık Farkı ΔT", f"{delta_T:,.2f}", unit="K")
 
         # Profil ve direnç dağılımı
         pos, temps, err = compute_planar_temperature_profile(
