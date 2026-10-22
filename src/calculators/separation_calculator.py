@@ -85,7 +85,7 @@ def calculate_mccabe_thiele_lines(
 
     if q == 1:
         q_line_x = [zF, zF]
-        q_line_y = [zF, eq_curve(zF)]
+        q_line_y = [zF, float(eq_curve(zF))]
         slope_q = None
         intercept_q = None
     else:

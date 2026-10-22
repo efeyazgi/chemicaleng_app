@@ -1,0 +1,5 @@
+# Install application dependencies and the test runner in the same environment:
+# python -m pip install -r requirements-dev.txt
+# python -m pytest -q
+-r requirements.txt
+pytest>=7
